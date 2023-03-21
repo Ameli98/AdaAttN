@@ -1,19 +1,22 @@
 import torch
 from PIL import Image
 import numpy as np
-import os
+from tqdm import tqdm
 import random
 import torch.nn as nn
+from pathlib import Path
 
 
 def read_img(path, h, w):
     img = Image.open(path).convert('RGB').resize((w, h))
-    img = (torch.from_numpy(np.array(img).transpose((2, 0, 1))).float() / 255.).unsqueeze(0)
+    img = (torch.from_numpy(np.array(img).transpose(
+        (2, 0, 1))).float() / 255.).unsqueeze(0)
     return img
 
 
 def save_img(img, path):
-    img = (img[0].data.cpu().numpy().transpose((1, 2, 0)).clip(0, 1) * 255 + 0.5).astype(np.uint8)
+    img = (img[0].data.cpu().numpy().transpose(
+        (1, 2, 0)).clip(0, 1) * 255 + 0.5).astype(np.uint8)
     img = Image.fromarray(img)
     img.save(path)
 
@@ -57,9 +60,11 @@ class AttnAdaIN(nn.Module):
         if w_g * h_g > self.max_sample:
             if seed is not None:
                 torch.manual_seed(seed)
-            index = torch.randperm(w_g * h_g).to(content.device)[:self.max_sample]
+            index = torch.randperm(
+                w_g * h_g).to(content.device)[:self.max_sample]
             G = G[:, :, index]
-            style_flat = H.view(b, -1, w_g * h_g)[:, :, index].transpose(1, 2).contiguous()
+            style_flat = H.view(
+                b, -1, w_g * h_g)[:, :, index].transpose(1, 2).contiguous()
         else:
             style_flat = H.view(b, -1, w_g * h_g).transpose(1, 2).contiguous()
         b, _, h, w = F.size()
@@ -97,9 +102,11 @@ class AttnAdaINCos(nn.Module):
         if w_g * h_g > self.max_sample:
             if seed is not None:
                 torch.manual_seed(seed)
-            index = torch.randperm(w_g * h_g).to(content.device)[:self.max_sample]
+            index = torch.randperm(
+                w_g * h_g).to(content.device)[:self.max_sample]
             G = G[:, :, index]
-            style_flat = H.view(b, -1, w_g * h_g)[:, :, index].transpose(1, 2).contiguous()
+            style_flat = H.view(
+                b, -1, w_g * h_g)[:, :, index].transpose(1, 2).contiguous()
         else:
             style_flat = H.view(b, -1, w_g * h_g).transpose(1, 2).contiguous()
         G_norm = torch.sqrt((G ** 2).sum(1).view(b, 1, -1))
@@ -160,15 +167,15 @@ def get_key(feats):
     results = []
     _, _, h, w = feats[-1].shape
     for i in range(len(feats) - 1):
-        results.append(mean_variance_norm(nn.functional.interpolate(feats[i], (h, w))))
+        results.append(mean_variance_norm(
+            nn.functional.interpolate(feats[i], (h, w))))
     results.append(mean_variance_norm(feats[-1]))
     return torch.cat(results, dim=1)
 
 
-def main():
-    src_root = 'video_root'
-    transformer_path = 'attn_adain_video/latest_net_transformer.pth'
-    decoder_path = 'attn_adain_video/latest_net_decoder.pth'
+def main(src_video: Path, style_root: Path, output_root: Path):
+    transformer_path = 'checkpoints/attn_adain_video/latest_net_transformer.pth'
+    decoder_path = 'checkpoints/attn_adain_video/latest_net_decoder.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     image_encoder = nn.Sequential(
         nn.Conv2d(3, 3, (1, 1)),
@@ -225,7 +232,7 @@ def main():
         nn.Conv2d(512, 512, (3, 3)),
         nn.ReLU()  # relu5-4
     )
-    image_encoder.load_state_dict(torch.load('vgg_normalised.pth'))
+    image_encoder.load_state_dict(torch.load('checkpoints/vgg_normalised.pth'))
     enc_layers = list(image_encoder.children())
     enc_1 = nn.Sequential(*enc_layers[:4]).to(device)
     enc_2 = nn.Sequential(*enc_layers[4:11]).to(device)
@@ -235,7 +242,8 @@ def main():
         layer.eval()
         for param in layer.parameters():
             param.requires_grad = False
-    transformer = AttnAdaINCos(in_planes=256, key_planes=256 + 128 + 64, max_sample=256 * 256).to(device)
+    transformer = AttnAdaINCos(
+        in_planes=256, key_planes=256 + 128 + 64, max_sample=256 * 256).to(device)
     decoder = Decoder().to(device)
     transformer.load_state_dict(torch.load(transformer_path))
     decoder.load_state_dict(torch.load(decoder_path))
@@ -253,37 +261,31 @@ def main():
             results.append(func(results[-1]))
         return results[1:]
 
-    style_root = 'style'
-    output_root = 'result_video'
-    if not os.path.exists(output_root):
-        os.mkdir(output_root)
-    for style_name in os.listdir(style_root):
-        tgt_root = os.path.join(output_root, style_name[:style_name.rfind('.')])
-        style_path = os.path.join(style_root, style_name)
-        if not os.path.exists(tgt_root):
-            os.mkdir(tgt_root)
+    if not output_root.exists():
+        output_root.mkdir()
+    for style_name in list(style_root.iterdir()):
+        tgt_root = output_root / style_name.stem
+        style_path = style_root / style_name
+        if not tgt_root.exists():
+            tgt_root.mkdir()
         style = read_img(style_path, 512, 512).to(device)
         style_feats = encode_with_intermediate(style)
         seed = random.randint(0, 1000000)
         with torch.no_grad():
-            for folder in sorted(os.listdir(src_root)):
-                print('Processing Video %s...' % folder)
-                src_folder_path = os.path.join(src_root, folder)
-                if os.path.isdir(src_folder_path):
-                    tgt_folder_path = os.path.join(tgt_root, folder)
-                    if not os.path.exists(tgt_folder_path):
-                        os.mkdir(tgt_folder_path)
-                    for idx, name in enumerate(sorted(os.listdir(src_folder_path))):
-                        frame_path = os.path.join(src_folder_path, name)
-                        frame = read_img(frame_path, 256, 512).to(device)
-                        frame_feats = encode_with_intermediate(frame)
-                        result = decoder(transformer(frame_feats[-1], style_feats[-1],
-                                                     get_key(frame_feats), get_key(style_feats), seed))
-                        save_img(result, os.path.join(tgt_folder_path, name))
-                        if idx % 5 == 0:
-                            print('\tFrame %d finished!' % idx)
+            src_folder_path = src_video.parent / src_video.stem
+            if src_folder_path.is_dir():
+                print('Processing Video %s...' % src_video)
+                for frame_path in tqdm(src_folder_path.iterdir()):
+                    tgt_folder_path = tgt_root / src_video.stem
+                    if not tgt_folder_path.exists():
+                        tgt_folder_path.mkdir()
+                    frame = read_img(frame_path, 256, 512).to(device)
+                    frame_feats = encode_with_intermediate(frame)
+                    result = decoder(transformer(frame_feats[-1], style_feats[-1],
+                                                 get_key(frame_feats), get_key(style_feats), seed))
+                    save_img(result, tgt_folder_path / frame_path.name)
 
 
 if __name__ == '__main__':
-    main()
-
+    from sys import argv
+    main(Path(argv[1]), Path(argv[2]), Path(argv[3]))
