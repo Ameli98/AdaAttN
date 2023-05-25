@@ -23,6 +23,8 @@ class AdaAttNModel(BaseModel):
                                 default=10., help='weight for L2 style loss')
             parser.add_argument('--lambda_local', type=float, default=3.,
                                 help='weight for attention weighted style loss')
+            parser.add_argument('--lambda_temp', type=float, default=1.,
+                                help='weight for temportary loss for video')
         return parser
 
     def __init__(self, opt):
@@ -204,7 +206,8 @@ class AdaAttNModel(BaseModel):
                                                self.opt.shallow_layer),
                                   self.get_key(s_crop_feats, 4, self.opt.shallow_layer), self.seed)
         crop_cs = self.net_decoder(cs, c_crop_adain_feat_3)
-        self.loss_temp = self.criterionMSE(cs_crop, crop_cs)
+        self.loss_temp = self.criterionMSE(
+            cs_crop, crop_cs) * self.opt.lambda_temp
 
     def compute_content_loss(self, stylized_feats):
         self.loss_content = torch.tensor(0., device=self.device)
