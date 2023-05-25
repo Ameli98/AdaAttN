@@ -5,6 +5,8 @@ from tqdm import tqdm
 import random
 import torch.nn as nn
 from pathlib import Path
+from PIL import UnidentifiedImageError
+import subprocess
 
 
 def read_img(path, h, w):
@@ -173,7 +175,7 @@ def get_key(feats):
     return torch.cat(results, dim=1)
 
 
-def main(src_video: Path, style_root: Path, output_root: Path):
+def main(frame_src: Path, style_root: Path, output_root: Path):
     transformer_path = 'checkpoints/attn_adain_video/latest_net_transformer.pth'
     decoder_path = 'checkpoints/attn_adain_video/latest_net_decoder.pth'
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
@@ -263,29 +265,31 @@ def main(src_video: Path, style_root: Path, output_root: Path):
 
     if not output_root.exists():
         output_root.mkdir()
-    for style_name in list(style_root.iterdir()):
-        tgt_root = output_root / style_name.stem
-        style_path = style_root / style_name
+    for style_path in list(style_root.iterdir()):
+        style_name = style_path.name
+        tgt_root = output_root / style_name
         if not tgt_root.exists():
             tgt_root.mkdir()
-        style = read_img(style_path, 512, 512).to(device)
+        try:
+            style = read_img(style_path, 512, 512).to(device)
+        except UnidentifiedImageError:
+            subprocess.run(["rm", "-rf", f"{style_path}"])
         style_feats = encode_with_intermediate(style)
         seed = random.randint(0, 1000000)
         with torch.no_grad():
-            src_folder_path = src_video.parent / src_video.stem
-            if src_folder_path.is_dir():
-                print('Processing Video %s...' % src_video)
-                for frame_path in tqdm(src_folder_path.iterdir()):
-                    tgt_folder_path = tgt_root / src_video.stem
-                    if not tgt_folder_path.exists():
-                        tgt_folder_path.mkdir()
+            if frame_src.is_dir():
+                print('Processing Video %s...' % frame_src)
+                for frame_path in tqdm(frame_src.iterdir()):
+                    tgt_frame_folder = tgt_root / frame_src.stem
+                    if not tgt_frame_folder.exists():
+                        tgt_frame_folder.mkdir()
                     frame = read_img(frame_path, 256, 512).to(device)
                     frame_feats = encode_with_intermediate(frame)
                     result = decoder(transformer(frame_feats[-1], style_feats[-1],
                                                  get_key(frame_feats), get_key(style_feats), seed))
-                    save_img(result, tgt_folder_path / frame_path.name)
+                    save_img(result, tgt_frame_folder / frame_path.name)
 
 
-if __name__ == '__main__':
-    from sys import argv
-    main(Path(argv[1]), Path(argv[2]), Path(argv[3]))
+# if __name__ == '__main__':
+#     from sys import argv
+#     main(Path(argv[1]), Path(argv[2]), Path(argv[3]))

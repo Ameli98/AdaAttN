@@ -8,7 +8,7 @@ def V2F(video: cv2.VideoCapture, ipath: Path) -> None:
     ret, frame = video.read()
     index = 0
     while ret:
-        cv2.imwrite(str(ipath / f"{index}.jpg"), frame)
+        cv2.imwrite(str(ipath / f"{index}.png"), frame)
         ret, frame = video.read()
         index += 1
     video.release()

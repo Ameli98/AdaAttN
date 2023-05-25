@@ -1,3 +1,6 @@
 *.pth
 __pycache__
 .vscode
+style
+temp
+result
