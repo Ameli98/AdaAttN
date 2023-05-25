@@ -1,13 +1,13 @@
 python train.py \
---content_path [path to content training dataset] \
---style_path [path to style training dataset] \
+--content_path /mnt/c/Dataset/COCO \
+--style_path /mnt/c/Dataset/WikiArt_ada \
 --name AdaAttN_test \
 --model adaattn \
 --dataset_mode unaligned \
 --no_dropout \
 --load_size 512 \
 --crop_size 256 \
---image_encoder_path /other/vgg_normalised.pth \
+--image_encoder_path ./checkpoints/vgg_normalised.pth \
 --gpu_ids 0 \
 --batch_size 8 \
 --n_epochs 2 \
