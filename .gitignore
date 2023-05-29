@@ -2,5 +2,7 @@
 __pycache__
 .vscode
 style
-temp
-result
+temp/*
+input/*
+result/*
+*.zip

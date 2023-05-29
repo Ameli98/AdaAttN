@@ -12,9 +12,12 @@ from inference_frame import main as style_transfer
 # Requires ffmpeg to run
 
 if __name__ == "__main__":
+    default_input_folder = Path(argv[0]).parent / "input"
     default_style_folder = Path(argv[0]).parent / "style"
     default_output_folder = Path(argv[0]).parent / "result"
     temp_root = Path(argv[0]).parent / "temp"
+    if not default_input_folder.exists():
+        default_style_folder.mkdir()
     if not default_style_folder.exists():
         default_style_folder.mkdir()
     if not default_output_folder.exists():
@@ -24,11 +27,14 @@ if __name__ == "__main__":
 
     parser = argparse.ArgumentParser()
     parser.add_argument(
-        "--input", "-i", help="input video directory", required=True)
+        "--input", "-i", help="input video directory", nargs="?", default=f"{str(default_input_folder)}")
     parser.add_argument(
         "--style", "-s", help="style image directory", nargs="?", default=f"{str(default_style_folder)}")
     parser.add_argument(
         "--output", "-o", help="output video root directory", nargs="?", default=f"{str(default_output_folder)}")
+    parser.add_argument(
+        "--not_remove", "-nr", action="store_true", help="not remove stylized frame"
+    )
     args = parser.parse_args()
 
     for video_path in Path(args.input).iterdir():
@@ -70,7 +76,8 @@ if __name__ == "__main__":
                 ["ffmpeg", "-i", str(style_folder / f"temp_{video_path.name}"), "-i",
                     f"{audio_path}", "-c:v", "copy", "-c:a", "aac", f"{style_folder / video_path.name}"]
             )
-            subprocess.run(
-                ["rm", "-rf", str(style_folder / f"temp_{video_path.name}")])
+            if args.not_remove is False:
+                subprocess.run(
+                    ["rm", "-rf", str(style_folder / f"temp_{video_path.name}")])
         # subprocess.run(
         #     ["rm", "-rf", f"{video_path.parent / video_path.stem}.m4a"])
