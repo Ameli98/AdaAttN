@@ -33,8 +33,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--output", "-o", help="output video root directory", nargs="?", default=f"{str(default_output_folder)}")
     parser.add_argument(
-        "--not_remove", "-nr", action="store_true", help="not remove stylized frame"
-    )
+        "--not_remove", "-nr", action="store_true", help="not remove stylized frame")
     args = parser.parse_args()
 
     for video_path in Path(args.input).iterdir():
@@ -70,14 +69,16 @@ if __name__ == "__main__":
                     style_folder / f"temp_{video_path.name}", fps, int(width), int(height))
             except FileNotFoundError:
                 pass
-            subprocess.run(["rm", "-rf", f"{style_folder / video_path.stem}"])
+            if args.not_remove is False:
+                subprocess.run(
+                    ["rm", "-rf", f"{style_folder / video_path.stem}"])
         # Combine the output video with audio
             subprocess.run(
                 ["ffmpeg", "-i", str(style_folder / f"temp_{video_path.name}"), "-i",
                     f"{audio_path}", "-c:v", "copy", "-c:a", "aac", f"{style_folder / video_path.name}"]
             )
-            if args.not_remove is False:
-                subprocess.run(
-                    ["rm", "-rf", str(style_folder / f"temp_{video_path.name}")])
+            subprocess.run(
+                ["rm", "-rf", str(style_folder / f"temp_{video_path.name}")]
+            )
         # subprocess.run(
         #     ["rm", "-rf", f"{video_path.parent / video_path.stem}.m4a"])
