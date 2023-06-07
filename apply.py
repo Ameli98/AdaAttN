@@ -14,7 +14,7 @@ from style_transfer import main as style_transfer
 if __name__ == "__main__":
     default_input_folder = Path(argv[0]).parent / "input"
     default_style_folder = Path(argv[0]).parent / "style"
-    default_output_folder = Path(argv[0]).parent / "results"
+    default_output_folder = Path(argv[0]).parent / "result"
     temp_root = Path(argv[0]).parent / "temp"
     if not default_input_folder.exists():
         default_style_folder.mkdir()
