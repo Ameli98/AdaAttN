@@ -77,7 +77,7 @@ if __name__ == "__main__":
                 subprocess.run(
                     ["rm", "-rf", f"{style_folder / video_path.stem}"])
         # Combine the output video with audio
-            styled_video_name = styled_video_folder.name + "_" + video_path.name
+            styled_video_name = style_folder.name + "_" + video_path.name
             subprocess.run(
                 ["ffmpeg", "-i", str(styled_video_folder / f"temp_{video_path.name}"), "-i",
                     f"{audio_path}", "-c:v", "copy", "-c:a", "aac", f"{styled_video_folder / styled_video_name}"]
