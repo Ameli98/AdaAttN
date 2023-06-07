@@ -132,7 +132,6 @@ class AdaAttNModel(BaseModel):
         self.seed = 6666
         if self.isTrain:
             self.loss_names = ['content', 'global', 'local']
-            self.criterionMSE = torch.nn.MSELoss().to(self.device)
             self.optimizer_g = torch.optim.Adam(
                 itertools.chain(*parameters), lr=opt.lr)
             self.optimizers.append(self.optimizer_g)
@@ -206,8 +205,9 @@ class AdaAttNModel(BaseModel):
                                                self.opt.shallow_layer),
                                   self.get_key(s_crop_feats, 4, self.opt.shallow_layer), self.seed)
         crop_cs = self.net_decoder(cs, c_crop_adain_feat_3)
-        self.loss_temp = self.criterionMSE(
-            cs_crop, crop_cs) * self.opt.lambda_temp
+        criterionMSE = torch.nn.MSELoss().to(self.device)
+        self.loss_temp = criterionMSE(
+            cs_crop, crop_cs)
 
     def compute_content_loss(self, stylized_feats):
         self.loss_content = torch.tensor(0., device=self.device)

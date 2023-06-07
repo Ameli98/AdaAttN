@@ -1,12 +1,12 @@
 import cv2
 import subprocess
-import multiprocessing as mp
 import argparse
 from pathlib import Path
 from sys import argv
 from video2frame import V2F
 from frame2video import F2V
-from inference_frame import main as style_transfer
+# from inference_frame import main as style_transfer
+from style_transfer import main as style_transfer
 
 
 # Requires ffmpeg to run
@@ -14,7 +14,7 @@ from inference_frame import main as style_transfer
 if __name__ == "__main__":
     default_input_folder = Path(argv[0]).parent / "input"
     default_style_folder = Path(argv[0]).parent / "style"
-    default_output_folder = Path(argv[0]).parent / "result"
+    default_output_folder = Path(argv[0]).parent / "results"
     temp_root = Path(argv[0]).parent / "temp"
     if not default_input_folder.exists():
         default_style_folder.mkdir()
@@ -52,7 +52,11 @@ if __name__ == "__main__":
             V2F(input_video, video_temp)
 
         # Style-transfer the frames
-        style_transfer(video_temp, Path(args.style), Path(args.output))
+        styled_video_folder = Path(args.output) / video_path.stem
+        if not styled_video_folder.exists():
+            styled_video_folder.mkdir()
+        print(f"Now processing: {video_path.stem}")
+        style_transfer(video_temp, Path(args.style), styled_video_folder)
 
         # Get the audio file
         audio_path = temp_root / f"{video_path.stem}.m4a"
@@ -63,22 +67,24 @@ if __name__ == "__main__":
             )
 
         # Turn the style-transfered frames into video
-        for style_folder in Path(args.output).iterdir():
+        for style_folder in styled_video_folder.iterdir():
             try:
-                F2V(style_folder / video_path.stem,
-                    style_folder / f"temp_{video_path.name}", fps, int(width), int(height))
+                F2V(style_folder,
+                    styled_video_folder / f"temp_{video_path.name}", fps, int(width), int(height))
             except FileNotFoundError:
                 pass
             if args.not_remove is False:
                 subprocess.run(
                     ["rm", "-rf", f"{style_folder / video_path.stem}"])
         # Combine the output video with audio
+            styled_video_name = styled_video_folder.name + "_" + video_path.name
             subprocess.run(
-                ["ffmpeg", "-i", str(style_folder / f"temp_{video_path.name}"), "-i",
-                    f"{audio_path}", "-c:v", "copy", "-c:a", "aac", f"{style_folder / video_path.name}"]
+                ["ffmpeg", "-i", str(styled_video_folder / f"temp_{video_path.name}"), "-i",
+                    f"{audio_path}", "-c:v", "copy", "-c:a", "aac", f"{styled_video_folder / styled_video_name}"]
             )
             subprocess.run(
-                ["rm", "-rf", str(style_folder / f"temp_{video_path.name}")]
+                ["rm", "-rf", str(styled_video_folder /
+                                  f"temp_{video_path.name}")]
             )
         # subprocess.run(
         #     ["rm", "-rf", f"{video_path.parent / video_path.stem}.m4a"])

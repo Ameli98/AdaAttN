@@ -6,3 +6,5 @@ temp/*
 input/*
 result/*
 *.zip
+*.jpg
+*.png

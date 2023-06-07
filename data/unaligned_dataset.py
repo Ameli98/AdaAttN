@@ -8,7 +8,8 @@ from PIL import ImageFile
 
 cudnn.benchmark = True
 Image.MAX_IMAGE_PIXELS = None  # Disable DecompressionBombError
-ImageFile.LOAD_TRUNCATED_IMAGES = True  # Disable OSError: image file is truncated
+# Disable OSError: image file is truncated
+ImageFile.LOAD_TRUNCATED_IMAGES = True
 
 
 class UnalignedDataset(BaseDataset):
@@ -40,7 +41,8 @@ class UnalignedDataset(BaseDataset):
 
         name_A = os.path.basename(A_path)
         name_B = os.path.basename(B_path)
-        name = name_B[:name_B.rfind('.')] + '_' + name_A[:name_A.rfind('.')] + name_A[name_A.rfind('.'):]
+        name = name_B[:name_B.rfind(
+            '.')] + '_' + name_A[:name_A.rfind('.')] + name_A[name_A.rfind('.'):]
 
         result = {'c': A, 's': B, 'name': name}
 

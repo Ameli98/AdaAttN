@@ -1,6 +1,6 @@
 python3 test.py \
---content_path /mnt/c/Dataset/Calli_test \
---style_path /mnt/c/Dataset/style_test \
+--content_path temp/Yes \
+--style_path style \
 --name AdaAttN \
 --model adaattn \
 --dataset_mode unaligned \

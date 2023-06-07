@@ -1,7 +1,7 @@
 ----------------- Options ---------------
                batch_size: 1                             
           checkpoints_dir: ./checkpoints                 
-             content_path: /mnt/c/Dataset/Calli_test     	[default: None]
+             content_path: temp/Yes                      	[default: None]
                crop_ratio: 1.0                           
                 crop_size: 512                           	[default: 256]
              dataset_mode: unaligned                     
@@ -34,12 +34,11 @@
                 output_nc: 3                             
                     phase: test                          
                preprocess: resize_and_crop               
-              result_path: ./result_vedio/               
               results_dir: ./results/                    
            serial_batches: False                         
             shallow_layer: True                          	[default: False]
         skip_connection_3: True                          	[default: False]
-               style_path: /mnt/c/Dataset/style_test     	[default: None]
+               style_path: style                         	[default: None]
                    suffix:                               
                   verbose: False                         
 ----------------- End -------------------
