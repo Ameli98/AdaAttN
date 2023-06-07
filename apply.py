@@ -68,6 +68,8 @@ if __name__ == "__main__":
 
         # Turn the style-transfered frames into video
         for style_folder in styled_video_folder.iterdir():
+            if not style_folder.is_dir():
+                continue
             try:
                 F2V(style_folder,
                     styled_video_folder / f"temp_{video_path.name}", fps, int(width), int(height))
@@ -78,10 +80,11 @@ if __name__ == "__main__":
                     ["rm", "-rf", f"{style_folder / video_path.stem}"])
         # Combine the output video with audio
             styled_video_name = style_folder.name + "_" + video_path.name
-            subprocess.run(
-                ["ffmpeg", "-i", str(styled_video_folder / f"temp_{video_path.name}"), "-i",
-                    f"{audio_path}", "-c:v", "copy", "-c:a", "aac", f"{styled_video_folder / styled_video_name}"]
-            )
+            if not (styled_video_folder / styled_video_name).exists():
+                subprocess.run(
+                    ["ffmpeg", "-i", str(styled_video_folder / f"temp_{video_path.name}"), "-i",
+                        f"{audio_path}", "-c:v", "copy", "-c:a", "aac", f"{styled_video_folder / styled_video_name}"]
+                )
             subprocess.run(
                 ["rm", "-rf", str(styled_video_folder /
                                   f"temp_{video_path.name}")]
